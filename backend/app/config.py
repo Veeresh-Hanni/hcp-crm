@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     (see .env.example) or real environment variables.
     """
 
-    database_url: str = "postgresql+psycopg2://postgres:Veeru123@localhost:5432/hcp_crm"
+    database_url: str = "postgresql+psycopg2://postgres:psqlpass@localhost:5432/hcp_crm"
 
     groq_api_key: str = ""
     groq_fast_model: str = "gemma2-9b-it"          # router + extraction calls

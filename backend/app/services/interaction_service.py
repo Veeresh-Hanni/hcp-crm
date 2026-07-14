@@ -104,7 +104,7 @@ def list_interactions_for_hcp(db: Session, hcp_id: str, limit: int = 20) -> list
     return (
         db.query(Interaction)
         .filter(Interaction.hcp_id == hcp_id)
-        .order_by(Interaction.interaction_date.desc())
+        .order_by(Interaction.interaction_date.desc(), Interaction.created_at.desc())
         .limit(limit)
         .all()
     )

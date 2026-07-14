@@ -54,6 +54,12 @@
   min-height: 620px;
 }
 
+.screen__panel--form {
+  position: sticky;
+  top: 24px;
+  align-self: start;
+}
+
 @media (max-width: 860px) {
   .screen__body {
     grid-template-columns: 1fr;
@@ -65,5 +71,9 @@
 
   .screen__badge {
     white-space: normal;
+  }
+
+  .screen__panel--form {
+    position: static;
   }
 }

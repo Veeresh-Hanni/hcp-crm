@@ -1,9 +1,9 @@
 # AI-First CRM — HCP Module: Log Interaction Screen
 
-A field-rep-facing "Log Interaction" screen for a healthcare-professional (HCP) CRM. Reps can log an
-interaction either through a **structured form** or a **conversational chat interface** backed by a
-LangGraph agent running on Groq. Both paths write through the same backend service layer, so the data
-model never diverges depending on how a record was created.
+A field-rep-facing "Log Interaction" screen for a healthcare-professional (HCP) CRM. The UI is a
+split-screen experience with an AI-controlled interaction form on the left and a conversational chat
+assistant on the right. Reps do not manually fill the form; they use prompts, and a LangGraph agent
+running on Groq drives the tools that populate, edit, read, recommend, and compliance-check the record.
 
 Built for the AI-First CRM technical assignment (Round 1).
 
@@ -21,10 +21,10 @@ A full architecture write-up (agent design, all 5 tools, DB schema, API surface)
 
 ## Architecture summary
 
-- **Frontend:** React + Redux Toolkit, Google Inter font. `LogInteractionScreen` toggles between
-  `InteractionForm` (form mode) and `ChatInterface` (chat mode); an `InteractionHistoryList` sidebar
-  shows everything logged for the selected HCP so far.
-- **Backend:** FastAPI. `/api/interactions` and `/api/hcps` handle form-mode CRUD directly.
+- **Frontend:** React + Redux Toolkit, Google Inter font. `LogInteractionScreen` renders
+  `InteractionForm` and `ChatInterface` side by side. The form state updates from LangGraph tool
+  results returned by `/api/chat/message`.
+- **Backend:** FastAPI. `/api/interactions` and `/api/hcps` provide persistence APIs.
   `/api/chat/message` runs one turn of the LangGraph agent per request and persists session state
   (draft interaction, last interaction id, active HCP) on the `chat_sessions` row between turns.
 - **Agent:** LangGraph `StateGraph` with a router node (intent classification) that dispatches to one

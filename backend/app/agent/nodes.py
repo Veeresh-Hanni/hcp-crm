@@ -37,6 +37,7 @@ def log_node(state: AgentState, db: Session) -> AgentState:
         state["needs_clarification"] = False
         state["draft_interaction"] = {}
         state["last_interaction_id"] = result["interaction"]["id"]
+        state["active_hcp_id"] = result["interaction"].get("hcp_id")
         i = result["interaction"]
         state["reply"] = (
             f"Logged: {i['hcp_name']} — {i['type']} on {i['interaction_date'][:10]}. "
@@ -63,6 +64,8 @@ def edit_node(state: AgentState, db: Session) -> AgentState:
         state["reply"] = result["message"]
     else:
         state["needs_clarification"] = False
+        state["active_hcp_id"] = result["interaction"].get("hcp_id")
+        state["last_interaction_id"] = result["interaction"]["id"]
         fields = ", ".join(result["interaction"]["changed_fields"])
         state["reply"] = f"Updated {fields} on that interaction."
     return state
@@ -71,20 +74,41 @@ def edit_node(state: AgentState, db: Session) -> AgentState:
 def lookup_node(state: AgentState, db: Session) -> AgentState:
     result = agent_tools.lookup_hcp(db, name_query=state["user_text"])
     state["tool_result"] = {"tool": "lookup_hcp", **result}
+    
     if result["status"] == "not_found":
         state["reply"] = result["message"]
     else:
         top = result["candidates"][0]
         state["active_hcp_id"] = top["id"]
-        state["reply"] = (
-            f"{top['name']} ({top.get('specialty') or 'specialty n/a'}) — "
-            f"last interaction: {top.get('last_interaction_date') or 'none logged'}, "
-            f"{top.get('interaction_count', 0)} total interactions."
-        )
+        
+        if result.get("interaction"):
+            state["last_interaction_id"] = result["interaction"]["id"]
+            latest = result["interaction"]
+
+            summary_text = latest.get("discussion_notes") or latest.get("summary") or "No notes captured"
+            date_str = latest.get("interaction_date", "")
+            sentiment = latest.get("sentiment") or "n/a"
+
+            clean_date = date_str[:10] if date_str else "n/a"
+
+            state["reply"] = (
+                f"{top['name']} ({top.get('specialty') or 'specialty n/a'}) — "
+                f"latest interaction on {clean_date}: {summary_text.rstrip('.')}. "
+                f"Sentiment: {sentiment}. "
+                f"{top.get('interaction_count', 0)} total interactions."
+            )
+        else:
+            state["reply"] = (
+                f"{top['name']} ({top.get('specialty') or 'specialty n/a'}) — "
+                f"no interactions logged yet. {top.get('interaction_count', 0)} total interactions."
+            )
+            
     state["needs_clarification"] = False
     return state
 
 
+
+    
 def suggest_node(state: AgentState, db: Session) -> AgentState:
     hcp_id = state.get("active_hcp_id")
     if not hcp_id:

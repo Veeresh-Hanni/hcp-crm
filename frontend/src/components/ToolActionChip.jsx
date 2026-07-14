@@ -21,12 +21,27 @@ const STATUS_DOT = {
 export default function ToolActionChip({ action }) {
   const label = TOOL_LABELS[action.tool] || action.tool;
   const dotColor = STATUS_DOT[action.status] || "var(--status-neutral)";
+  const interaction = action.data?.interaction;
+  const lookupSummary =
+    action.tool === "lookup_hcp" && interaction
+      ? interaction.discussion_notes || interaction.summary || "No notes captured"
+      : "";
+  const lookupDate = interaction?.interaction_date?.slice(0, 10);
+  const lookupSentiment = interaction?.sentiment;
 
   return (
-    <div className="tool-chip">
-      <span className="tool-chip__dot" style={{ background: dotColor }} />
-      <span className="tool-chip__name">{label}</span>
-      <span className="tool-chip__status">{action.status}</span>
+    <div className="tool-chip-wrap">
+      <div className="tool-chip">
+        <span className="tool-chip__dot" style={{ background: dotColor }} />
+        <span className="tool-chip__name">{label}</span>
+        <span className="tool-chip__status">{action.status}</span>
+      </div>
+      {lookupSummary && (
+        <div className="tool-chip__detail">
+          Latest{lookupDate ? ` on ${lookupDate}` : ""}: {lookupSummary}
+          {lookupSentiment ? ` Sentiment: ${lookupSentiment}.` : ""}
+        </div>
+      )}
     </div>
   );
 }

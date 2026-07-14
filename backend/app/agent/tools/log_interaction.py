@@ -62,11 +62,7 @@ def log_interaction(db: Session, rep_id: str, raw_text: str, draft: dict | None 
                 "draft": merged,
                 "candidates": candidates,
             }
-        return {
-            "status": "needs_clarification",
-            "question": f"I couldn't find an HCP named '{hcp_name}' in the system. Could you confirm the spelling, or add them first?",
-            "draft": merged,
-        }
+        hcp = hcp_service.create_hcp(db, {"name": hcp_name, "contact_info": {}})
 
     if not merged.get("interaction_date"):
         return {"status": "needs_clarification", "question": "What date did this interaction happen?", "draft": merged}
@@ -95,11 +91,16 @@ def log_interaction(db: Session, rep_id: str, raw_text: str, draft: dict | None 
         "status": "ok",
         "interaction": {
             "id": interaction.id,
+            "hcp_id": hcp.id,
             "hcp_name": hcp.name,
             "interaction_date": interaction.interaction_date.isoformat(),
-            "type": interaction.type,
+            "type": interaction.type.value if hasattr(interaction.type, "value") else interaction.type,
             "summary": interaction.summary,
-            "sentiment": interaction.sentiment,
+            "discussion_notes": interaction.discussion_notes,
+            "product_names": merged.get("products", []),
+            "materials_shared": interaction.materials_shared,
+            "samples_given": interaction.samples_given,
+            "sentiment": interaction.sentiment.value if hasattr(interaction.sentiment, "value") else interaction.sentiment,
             "next_steps": interaction.next_steps,
         },
     }

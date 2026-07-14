@@ -1,7 +1,7 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { api } from "../api/client";
 import { sendMessage } from "./chatSlice";
-import { DEFAULT_MATERIALS, normalizeToolPatch } from "../utils/localAgent";
+import { DEFAULT_MATERIALS, normalizeToolPatch } from "../utils/toolResults";
 
 export const submitInteraction = createAsyncThunk(
   "interactions/submit",
