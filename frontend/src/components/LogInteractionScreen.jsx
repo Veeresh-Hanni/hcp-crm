@@ -1,5 +1,5 @@
-import InteractionForm from "./InteractionForm";
 import ChatInterface from "./ChatInterface";
+import InteractionForm from "./InteractionForm";
 import "./LogInteractionScreen.css";
 
 export default function LogInteractionScreen() {
@@ -7,10 +7,10 @@ export default function LogInteractionScreen() {
     <div className="screen">
       <header className="screen__header">
         <div>
-          <h1 className="screen__title">AI Interaction Logger</h1>
+          <h1 className="screen__title">Log HCP Interaction</h1>
           <p className="screen__subtitle">Use the assistant to populate and edit the HCP interaction record.</p>
         </div>
-        <span className="screen__badge">LangGraph tool-driven UI</span>
+        {/* <span className="screen__badge">LangGraph tool-driven UI</span> */}
       </header>
 
       <div className="screen__body">

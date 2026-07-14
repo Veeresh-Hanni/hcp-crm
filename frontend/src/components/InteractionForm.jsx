@@ -19,7 +19,7 @@ export default function InteractionForm() {
       <div className="interaction-form__header">
         <div>
           <p className="interaction-form__eyebrow">Interaction Details</p>
-          <h2 className="interaction-form__title">AI-controlled form</h2>
+          {/* <h2 className="interaction-form__title">AI-controlled form</h2> */}
         </div>
         <span className="interaction-form__status">{lastToolName || "Awaiting tool"}</span>
       </div>
