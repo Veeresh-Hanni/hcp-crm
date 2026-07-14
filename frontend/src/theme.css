@@ -1,0 +1,78 @@
+:root {
+  /* --- Color: clinical, precise, restrained. Deep teal reads as trust/life-sciences
+     without leaning on generic SaaS blue or AI-cliché terracotta. --- */
+  --bg: #f4f7f7;
+  --surface: #ffffff;
+  --surface-sunken: #eef2f2;
+  --border: #dbe4e3;
+  --border-strong: #c2d0cf;
+
+  --ink: #142523;
+  --ink-muted: #5c6f6d;
+  --ink-faint: #93a3a1;
+
+  --primary: #0e5f58;
+  --primary-hover: #0a4a45;
+  --primary-tint: #e3efee;
+
+  --status-positive: #2f7d54;
+  --status-positive-tint: #e7f3ec;
+  --status-neutral: #8a8f7f;
+  --status-neutral-tint: #f0f0ea;
+  --status-negative: #a8462f;
+  --status-negative-tint: #f7ece8;
+  --status-flagged: #b8792a;
+  --status-flagged-tint: #fbf1e2;
+
+  --font-ui: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --shadow-card: 0 1px 2px rgba(20, 37, 35, 0.06), 0 1px 8px rgba(20, 37, 35, 0.04);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
