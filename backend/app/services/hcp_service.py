@@ -1,8 +1,13 @@
 from rapidfuzz import fuzz, process
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+import re
 
 from app.models import HCP, Interaction
+
+
+def _normalize_name(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", value.lower())
 
 
 def search_hcps(db: Session, query: str, limit: int = 5) -> list[dict]:
@@ -27,7 +32,7 @@ def search_hcps(db: Session, query: str, limit: int = 5) -> list[dict]:
         last = (
             db.query(Interaction)
             .filter(Interaction.hcp_id == hcp_id)
-            .order_by(Interaction.interaction_date.desc())
+            .order_by(Interaction.interaction_date.desc(), Interaction.created_at.desc())
             .first()
         )
         count = db.query(func.count(Interaction.id)).filter(Interaction.hcp_id == hcp_id).scalar()
@@ -54,11 +59,17 @@ def resolve_single_hcp(db: Session, name_guess: str) -> tuple[HCP | None, list[d
     the caller should treat this as ambiguous and ask the user to disambiguate.
     """
     candidates = search_hcps(db, name_guess, limit=5)
+    exact = db.query(HCP).all()
+    exact_hcp = next((hcp for hcp in exact if _normalize_name(hcp.name) == _normalize_name(name_guess)), None)
+    if exact_hcp:
+        return exact_hcp, candidates
     if not candidates:
         return None, []
-    if len(candidates) == 1 or candidates[0]["match_score"] >= 90:
+    if candidates[0]["match_score"] >= 90:
         hcp = db.query(HCP).filter(HCP.id == candidates[0]["id"]).first()
         return hcp, candidates
+    if len(candidates) == 1:
+        return None, []
     return None, candidates
 
 

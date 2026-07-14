@@ -1,6 +1,9 @@
+import re
+
 from sqlalchemy.orm import Session
 
 from app.agent.llm_client import fast_llm, call_json
+from app.models import HCP
 from app.services import hcp_service, interaction_service
 
 DIFF_PROMPT = """You are helping edit a previously logged HCP interaction record.
@@ -19,6 +22,13 @@ The rep just said what they want changed. Return JSON describing ONLY the fields
 
 Only include keys that should actually change based on the rep's instruction. Omit anything unchanged.
 """
+
+
+def _extract_dr_name(text: str) -> str | None:
+    match = re.search(r"\bDr\.?\s*([A-Za-z]+(?:\s+[A-Za-z]+)?)", text, flags=re.IGNORECASE)
+    if not match:
+        return None
+    return f"Dr. {' '.join(match.group(1).split()).title()}"
 
 
 def edit_interaction(db: Session, rep_id: str, raw_text: str, interaction_id: str | None, last_interaction_id: str | None) -> dict:
@@ -54,7 +64,9 @@ def edit_interaction(db: Session, rep_id: str, raw_text: str, interaction_id: st
         from datetime import datetime
         diff["interaction_date"] = datetime.fromisoformat(diff["interaction_date"])
 
-    changed_hcp_name = diff.pop("hcp_name", None)
+    changed_hcp_name = _extract_dr_name(raw_text) or diff.pop("hcp_name", None)
+    if "hcp_name" in diff:
+        diff.pop("hcp_name", None)
     if changed_hcp_name:
         hcp, candidates = hcp_service.resolve_single_hcp(db, changed_hcp_name)
         if hcp is None and len(candidates) > 1:
@@ -71,6 +83,7 @@ def edit_interaction(db: Session, rep_id: str, raw_text: str, interaction_id: st
         return {"status": "needs_clarification", "question": "I couldn't tell what you'd like changed — could you be more specific?"}
 
     updated = interaction_service.update_interaction(db, target_id, diff, changed_by=rep_id)
+    updated_hcp = db.query(HCP).filter(HCP.id == updated.hcp_id).first()
     changed_fields = ["hcp_name" if field == "hcp_id" else field for field in diff.keys()]
 
     return {
@@ -78,7 +91,7 @@ def edit_interaction(db: Session, rep_id: str, raw_text: str, interaction_id: st
         "interaction": {
             "id": updated.id,
             "hcp_id": updated.hcp_id,
-            "hcp_name": updated.hcp.name if updated.hcp else None,
+            "hcp_name": updated_hcp.name if updated_hcp else None,
             "changed_fields": changed_fields,
             "interaction_date": updated.interaction_date.isoformat(),
             "type": updated.type.value if hasattr(updated.type, "value") else updated.type,
