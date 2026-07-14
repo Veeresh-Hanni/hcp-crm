@@ -9,6 +9,7 @@ async function request(path, options = {}) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.detail || `Request failed: ${res.status}`);
   }
+  if (res.status === 204) return null;
   return res.json();
 }
 
@@ -22,6 +23,7 @@ export const api = {
       body: JSON.stringify(data),
     }),
   listInteractions: (hcpId) => request(`/interactions/?hcp_id=${encodeURIComponent(hcpId)}`),
+  getInteraction: (id) => request(`/interactions/${id}`),
   updateInteraction: (id, data) =>
     request(`/interactions/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
 

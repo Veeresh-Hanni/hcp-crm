@@ -69,10 +69,10 @@ function inferMaterials(text) {
 
 function inferProducts(text) {
   const candidates = new Set();
-  const productPattern = /\b(product\s+[A-Z]|[A-Z][a-zA-Z]+(?:Plus|Calm|XR|X|Data)?)\b/g;
+  const productPattern = /\b(product\s+[A-Z]|[A-Z][a-zA-Z]+(?:Plus|Calm|XR|X|Data)?)\b/gi;
   for (const match of text.matchAll(productPattern)) {
     const value = match[1].trim();
-    if (!/^Dr\.?$/i.test(value) && !/^Today$/i.test(value)) candidates.add(value);
+    if (!/^Dr\.?$/i.test(value) && !/^Today$/i.test(value)) candidates.add(toTitleName(value));
   }
   const discussed = text.match(/\bdiscussed\s+(.+?)(?:\.|,|\band\b|\bwith\b|\bthe sentiment\b|$)/i);
   if (discussed?.[1]) candidates.add(discussed[1].trim());
@@ -121,7 +121,7 @@ function detectIntent(text) {
   const lower = text.toLowerCase();
   if (/\b(compliance|off-label|flag|review)\b/.test(lower)) return "compliance";
   if (/\b(what should|next visit|bring up|suggest|recommend|next best)\b/.test(lower)) return "suggest";
-  if (/\b(latest|history|last|who is|look up|lookup)\b/.test(lower)) return "lookup";
+  if (/\b(latest|history|last|who is|look up|lookup|show|read)\b/.test(lower)) return "lookup";
   if (/\b(actually|change|correct|edit|sorry|instead|was actually)\b/.test(lower)) return "edit";
   if (/\b(met|visited|called|emailed|discussed|shared|sentiment|sample|brochure)\b/.test(lower)) return "log";
   return "chitchat";
@@ -208,19 +208,65 @@ export function runLocalAgent(text, currentDraft = {}) {
   };
 }
 
+export function mergeDraftPatch(currentDraft = {}, patch = {}) {
+  return {
+    ...currentDraft,
+    ...patch,
+    materials_shared: {
+      ...(currentDraft.materials_shared || DEFAULT_MATERIALS),
+      ...(patch.materials_shared || {}),
+    },
+  };
+}
+
+export function draftToInteractionPayload(draft, hcpId) {
+  const productNames = (draft.discussion_product || "")
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean);
+
+  return {
+    hcp_id: hcpId,
+    interaction_date: `${draft.interaction_date || today()}T00:00:00`,
+    type: draft.type || "visit",
+    summary: draft.discussion_product || draft.discussion_notes || null,
+    discussion_notes: draft.discussion_notes || draft.discussion_product || null,
+    sentiment: draft.sentiment || null,
+    materials_shared: draft.materials_shared || {},
+    samples_given: {},
+    next_steps: draft.next_steps || null,
+    product_names: productNames,
+    source: "chat",
+  };
+}
+
+export function draftToInteractionPatch(patch) {
+  const out = {};
+  if (patch.interaction_date) out.interaction_date = `${patch.interaction_date}T00:00:00`;
+  if (patch.type) out.type = patch.type;
+  if (patch.discussion_product) out.summary = patch.discussion_product;
+  if (patch.discussion_notes) out.discussion_notes = patch.discussion_notes;
+  if (patch.sentiment) out.sentiment = patch.sentiment;
+  if (patch.materials_shared) out.materials_shared = patch.materials_shared;
+  if (patch.next_steps) out.next_steps = patch.next_steps;
+  return out;
+}
+
 export function normalizeToolPatch(action) {
   const data = action?.data || {};
   if (data.form_patch) return data.form_patch;
 
-  if (action?.tool === "log_interaction" && data.interaction) {
+  if (["log_interaction", "lookup_hcp"].includes(action?.tool) && data.interaction) {
     const interaction = data.interaction;
     return compactPatch({
-      hcp_name: interaction.hcp_name,
+      hcp_name: interaction.hcp_name || data.hcp?.name,
       interaction_date: interaction.interaction_date?.slice(0, 10),
       type: interaction.type,
       sentiment: interaction.sentiment,
       next_steps: interaction.next_steps,
-      discussion_notes: interaction.summary,
+      discussion_product: interaction.summary,
+      discussion_notes: interaction.discussion_notes || interaction.summary,
+      materials_shared: interaction.materials_shared,
     });
   }
 

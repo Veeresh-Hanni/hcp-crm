@@ -29,6 +29,8 @@ const interactionsSlice = createSlice({
       next_steps: "",
     },
     lastToolName: null,
+    currentHcpId: null,
+    currentInteractionId: null,
     submitStatus: "idle", // idle | loading | succeeded | failed
     submitError: null,
     lastCreated: null,
@@ -57,6 +59,8 @@ const interactionsSlice = createSlice({
         next_steps: "",
       };
       state.lastToolName = null;
+      state.currentHcpId = null;
+      state.currentInteractionId = null;
     },
     resetSubmitStatus(state) {
       state.submitStatus = "idle";
@@ -82,7 +86,7 @@ const interactionsSlice = createSlice({
       })
       .addCase(sendMessage.fulfilled, (state, action) => {
         const formTools = (action.payload.tool_actions || []).filter((toolAction) =>
-          ["log_interaction", "edit_interaction"].includes(toolAction.tool)
+          ["log_interaction", "edit_interaction", "lookup_hcp"].includes(toolAction.tool)
         );
         formTools.forEach((toolAction) => {
           const patch = normalizeToolPatch(toolAction);
@@ -95,6 +99,9 @@ const interactionsSlice = createSlice({
             },
           };
           state.lastToolName = toolAction.tool;
+          state.currentHcpId = toolAction.data?.hcp?.id || state.currentHcpId;
+          state.currentInteractionId =
+            toolAction.data?.current_interaction_id || toolAction.data?.interaction?.id || state.currentInteractionId;
         });
       });
   },
