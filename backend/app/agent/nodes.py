@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.agent.llm_client import fast_llm, call_json
 from app.agent.state import AgentState
 from app.agent import tools as agent_tools
+from app.services import interaction_service
 
 ROUTER_PROMPT = """You are the intent router for a pharma field-rep CRM chat assistant. Classify the rep's
 message into exactly one intent:
@@ -112,9 +113,16 @@ def lookup_node(state: AgentState, db: Session) -> AgentState:
 def suggest_node(state: AgentState, db: Session) -> AgentState:
     hcp_id = state.get("active_hcp_id")
     if not hcp_id:
-        state["reply"] = "Which HCP would you like a suggestion for?"
-        state["needs_clarification"] = True
-        return state
+        lookup = agent_tools.lookup_hcp(db, name_query=state["user_text"])
+        if lookup.get("status") == "ok" and lookup.get("candidates"):
+            hcp_id = lookup["candidates"][0]["id"]
+            state["active_hcp_id"] = hcp_id
+            if lookup.get("interaction"):
+                state["last_interaction_id"] = lookup["interaction"]["id"]
+        else:
+            state["reply"] = "Which HCP would you like a suggestion for?"
+            state["needs_clarification"] = True
+            return state
     result = agent_tools.suggest_next_best_action(db, hcp_id=hcp_id)
     state["tool_result"] = {"tool": "suggest_next_best_action", **result}
     state["needs_clarification"] = False
@@ -130,6 +138,12 @@ def suggest_node(state: AgentState, db: Session) -> AgentState:
 
 def compliance_node(state: AgentState, db: Session) -> AgentState:
     interaction_id = state.get("last_interaction_id")
+    if not interaction_id and state.get("active_hcp_id"):
+        latest = interaction_service.list_interactions_for_hcp(db, state["active_hcp_id"], limit=1)
+        if latest:
+            interaction_id = latest[0].id
+            state["last_interaction_id"] = interaction_id
+
     if not interaction_id:
         state["reply"] = "I don't have a recent interaction in this session to compliance-check."
         state["needs_clarification"] = True
